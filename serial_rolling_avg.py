@@ -1,12 +1,10 @@
 import serial, pdb, time
 import matplotlib.pyplot as plt
 
-print("ready to open")
-ser = serial.Serial('COM5')
 
 samples = []
 window = 4
-graph_window = 200
+graph_window = 60
 
 ave_graph = []
 curr_graph = []
@@ -14,13 +12,29 @@ del_graph = []
 plt.ion()
 plt.figure(1)
 
+print("ready to open")
+ser = serial.Serial('COM10')
+print("opened")
+print("calibrating")
+ser.write("UUUUU".encode("ascii"))
+ser.flush()
+print("continuing")
+
 while True:
-    line = ser.read_all().decode("ascii").split("\r\n")
-    if len(line) > 1:
+    try:
+        ser_in = ser.read_all() 
+        line = ser_in.decode("ascii").split("\n")
+    except:
+        print(line)
+        if len(line[0]) > 0:
+            pdb.set_trace()
+        continue
+    for l in line:
         try:
-            current = int(line[1])
+            current = int(l)
         except:
             continue
+
         samples.append((current))
         if len(samples) > window:
             samples.pop(0)
@@ -39,7 +53,8 @@ while True:
             del_graph.pop(0)
         y_axis = range(0,len(ave_graph))
 
-        print("curr: %d, ave: %d, delta: %d" % (current,ave, delta))
+        print("curr: %d, ave: %d, delta: %d, average delta: %d" 
+                % (current,ave, delta, sum(del_graph)/len(del_graph)))
 
         plt.clf()
         plt.subplot(211)
@@ -49,7 +64,7 @@ while True:
         plt.subplot(212)
         plt.title('Delta between average and current')
         plt.plot(y_axis, del_graph, 'b')
-        plt.pause(0.05)
+        plt.pause(0.1)
 
-    time.sleep(0.5)
+    time.sleep(0.40)
 
